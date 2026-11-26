@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FUSE｜伏せるだけの集中タイマー</title>
+<meta name="description" content="集中したいあなたへ。スマホを伏せている時間だけを計測する集中タイマー。手に取った回数と理由、何をしたかの日記、明日の目標、アラームまで。無料・登録不要。">
+<meta name="theme-color" content="#0E1116">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FUSE">
+<style>
+:root{
+  --bg:#0E1116;--bg2:#151A22;--surf:#1A2029;--line:rgba(236,231,220,.08);--line2:rgba(236,231,220,.15);
+  --ink:#ECE7DC;--sub:#8D929B;--faint:#4E545F;--amber:#E6B566;--amberD:#B98C46;--warn:#E28B70;
+  --sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo UI",system-ui,sans-serif;
+  --latin:"Avenir Next","Futura","Century Gothic","Helvetica Neue",-apple-system,"Segoe UI",sans-serif;
+  --num:"SF Pro Display",-apple-system,"Helvetica Neue","Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;letter-spacing:.01em;-webkit-font-smoothing:antialiased;overscroll-behavior:none;
+  background-image:radial-gradient(1100px 640px at 50% -12%,#1b2231 0%,transparent 62%)}
+button,input,textarea,select{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer;padding:0}
+svg{display:block}
+.app{max-width:460px;margin:0 auto;padding:env(safe-area-inset-top) 0 0;position:relative}
+.stars{position:fixed;inset:0;pointer-events:none;opacity:.45;z-index:0}
+.top{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:20px 22px 0}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--latin);font-weight:600;font-size:17px;letter-spacing:.32em}
+.logo svg{width:20px;height:20px}
+.streak{font-size:12px;color:var(--sub);display:flex;align-items:baseline;gap:4px}
+.streak b{color:var(--ink);font-family:var(--num);font-weight:500;font-size:15px}
+.view{position:relative;z-index:1;display:none;padding:0 22px 124px}
+.view.on{display:block;animation:in .45s ease}
+@keyframes in{from{opacity:0}to{opacity:1}}
+.sec{margin-top:30px}
+.st{font-size:13px;font-weight:600;color:var(--ink);margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.st small{font-weight:400;color:var(--sub);font-size:12px}
+/* ===== 集中 ===== */
+.hero{text-align:center;padding-top:20px}
+.hero .date{font-size:12.5px;color:var(--sub)}
+.hero .moonbox{width:min(58vw,230px);aspect-ratio:1;margin:14px auto 0}
+.hero .moonbox svg{width:100%;height:100%}
+.hero .total{font-family:var(--num);font-weight:200;font-size:58px;line-height:1;margin-top:16px}
+.hero .total small{font-family:var(--sans);font-size:15px;font-weight:400;margin-left:4px;color:var(--sub)}
+.hero .cap{font-size:13.5px;color:var(--sub);margin-top:12px}
+.hero .cap b{color:var(--amber);font-weight:500}
+.plan{display:flex;align-items:flex-start;gap:12px;margin-top:22px;padding:14px 16px;border-radius:16px;border:1px solid rgba(230,181,102,.28);background:rgba(230,181,102,.06);text-align:left}
+.plan svg{width:18px;height:18px;color:var(--amber);flex:none;margin-top:3px}
+.plan small{display:block;font-size:11.5px;color:var(--amber)}
+.plan b{font-size:14.5px;font-weight:600}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);margin-top:22px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.row3>div{padding:13px 0;text-align:center}
+.row3>div+div{border-left:1px solid var(--line)}
+.row3 b{display:block;font-family:var(--num);font-weight:300;font-size:22px;line-height:1.3}
+.row3 small{font-size:11px;color:var(--sub)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mode{display:flex;align-items:center;gap:9px;padding:13px 12px;border-radius:14px;border:1px solid var(--line);color:var(--sub);font-size:13.5px;transition:.2s}
+.mode svg{width:19px;height:19px;flex:none}
+.mode.on{border-color:var(--amber);color:var(--ink);background:rgba(230,181,102,.07)}
+.mode.on svg{color:var(--amber)}
+.durs{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--line);border-radius:14px;padding:4px;gap:2px}
+.durs button{padding:10px 0;border-radius:10px;font-family:var(--num);font-size:14.5px;color:var(--sub);transition:.2s;white-space:nowrap}
+.durs button small{font-family:var(--sans);font-size:10.5px;margin-left:1px}
+.durs button.txt{font-family:var(--sans);font-size:12px}
+.durs button.on{background:var(--ink);color:var(--bg);font-weight:600}
+.custom{display:none;margin-top:10px;padding:14px 16px;border:1px solid var(--line);border-radius:14px}
+.custom.on{display:block}
+.tgl{display:flex;gap:4px;padding:3px;border-radius:10px;background:var(--surf);margin-bottom:12px}
+.tgl button{flex:1;padding:7px 0;border-radius:8px;font-size:12.5px;color:var(--sub)}
+.tgl button.on{background:var(--line2);color:var(--ink);font-weight:600}
+.cr{display:flex;align-items:center;justify-content:space-between}
+.cr span{font-size:13.5px;color:var(--sub)}
+input[type=time]{background:var(--surf);border:1px solid var(--line2);border-radius:10px;padding:7px 10px;font-family:var(--num);font-size:17px;color-scheme:dark}
+.cta{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:26px;padding:18px;border-radius:999px;background:var(--amber);color:#1b1407;font-size:15.5px;font-weight:700;letter-spacing:.06em;transition:transform .15s,background .2s}
+.cta:active{transform:scale(.98);background:var(--amberD)}
+.cta svg{width:18px;height:18px}
+.subacts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.subacts button{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:999px;border:1px solid var(--line2);font-size:13px;font-weight:600}
+.subacts svg{width:16px;height:16px}
+.link{display:block;margin:14px auto 0;color:var(--sub);font-size:12.5px;text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:4px}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 0}
+.opt+.opt{border-top:1px solid var(--line)}
+.opt .t{font-size:14.5px}
+.opt .d{display:block;font-size:12px;color:var(--sub);margin-top:1px}
+.sw{width:46px;height:28px;border-radius:99px;background:var(--line2);position:relative;transition:.25s;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--ink);transition:.25s}
+.sw.on{background:var(--amber)}.sw.on::after{left:21px;background:#1b1407}
+select{background:var(--surf);border:1px solid var(--line2);border-radius:10px;padding:7px 10px;font-size:13.5px;color-scheme:dark}
+input[type=range]{width:120px;accent-color:var(--amber)}
+.install{display:none;align-items:center;gap:14px;margin-top:26px;padding:15px 16px;border:1px solid var(--line);border-radius:16px}
+.install.on{display:flex}
+.install img{width:40px;height:40px;border-radius:10px}
+.install b{font-size:14px;font-weight:600}
+.install small{display:block;color:var(--sub);font-size:12px}
+.install button{margin-left:auto;font-size:13px;color:var(--amber);font-weight:600;flex:none}
+/* ===== 計測中・休憩 ===== */
+.session{position:fixed;inset:0;z-index:30;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 28px calc(30px + env(safe-area-inset-bottom));
+  background-image:radial-gradient(900px 600px at 50% 28%,#18202d 0%,transparent 60%)}
+.session.on{display:flex;animation:in .35s}
+.session .moonbox{width:min(52vw,210px);aspect-ratio:1}
+.session .moonbox svg{width:100%;height:100%}
+.session .guide{width:min(52vw,210px);aspect-ratio:1;display:none;align-items:center;justify-content:center}
+.session .guide svg{width:74px;height:auto;color:var(--ink);animation:flip 3.2s ease-in-out infinite}
+@keyframes flip{0%,18%{transform:perspective(500px) rotateX(0)}55%,85%{transform:perspective(500px) rotateX(180deg)}100%{transform:perspective(500px) rotateX(180deg)}}
+.session.armed .moonbox{display:none}.session.armed .guide{display:flex}
+.session .time{font-family:var(--num);font-weight:200;font-size:70px;line-height:1;margin-top:28px;font-variant-numeric:tabular-nums}
+.session .msg{font-size:17px;font-weight:600;margin-top:18px}
+.session .sub{font-size:13px;color:var(--sub);margin-top:6px;max-width:300px}
+.session .meta{display:flex;gap:36px;margin-top:26px}
+.session .meta div{font-size:11px;color:var(--sub)}
+.session .meta b{display:block;font-family:var(--num);font-weight:300;font-size:24px;color:var(--ink)}
+.session.paused .time{color:var(--warn)}
+.session .acts{display:flex;gap:10px;margin-top:30px;width:min(330px,84vw)}
+.session .acts button{flex:1;padding:15px;border-radius:999px;font-size:14px;font-weight:600}
+.b-line{border:1px solid var(--line2);color:var(--ink)}
+.b-fill{background:var(--amber);color:#1b1407}
+.ring-alarm{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.why{display:none;flex-wrap:wrap;justify-content:center;gap:7px;margin-top:20px;max-width:340px}
+.session.paused .why{display:flex}
+.why .q{width:100%;font-size:11.5px;color:var(--sub);margin-bottom:2px}
+.why button{padding:8px 13px;border-radius:999px;border:1px solid var(--line2);font-size:12.5px;color:var(--sub);transition:.2s}
+.why button.on{border-color:var(--amber);color:var(--ink);background:rgba(230,181,102,.08)}
+.dim{position:fixed;inset:0;background:#000;z-index:40;display:none;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#262a31;font-size:12px}
+.dim.on{display:flex}
+.brk .ring{width:min(56vw,220px);aspect-ratio:1;position:relative}
+.brk .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.brk .opts{display:flex;gap:8px;margin-top:22px}
+.brk .opts button{padding:9px 16px;border-radius:999px;border:1px solid var(--line2);font-family:var(--num);font-size:14px;color:var(--sub)}
+.brk .opts button.on{background:var(--ink);color:var(--bg);font-weight:600}
+/* ===== シート ===== */
+.sheet{position:fixed;inset:0;z-index:50;display:none;align-items:flex-end;justify-content:center}
+.sheet.on{display:flex}
+.sheet .back{position:absolute;inset:0;background:rgba(5,7,10,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.sheet .panel{position:relative;width:100%;max-width:460px;background:var(--bg2);border-radius:28px 28px 0 0;border-top:1px solid var(--line2);padding:12px 22px calc(22px + env(safe-area-inset-bottom));animation:up .42s cubic-bezier(.2,.8,.2,1);max-height:94vh;overflow:auto}
+.sheet.full .panel{height:94vh}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.grab{width:36px;height:4px;border-radius:4px;background:var(--line2);margin:0 auto 16px}
+.close{position:absolute;right:16px;top:14px;width:32px;height:32px;border-radius:50%;background:var(--surf);display:grid;place-items:center;color:var(--sub)}
+.close svg{width:16px;height:16px}
+.res{text-align:center}
+.res .moonbox{width:100px;height:100px;margin:2px auto 0}
+.res .k{font-size:12.5px;color:var(--sub);margin-top:12px}
+.res .time{font-family:var(--num);font-weight:200;font-size:56px;line-height:1.1}
+.res .phrase{font-size:14px;color:var(--amber);margin-top:4px}
+.tl{margin-top:18px}
+.tl svg{width:100%;height:40px}
+.tl .lg{display:flex;justify-content:space-between;font-size:10.5px;color:var(--sub);font-family:var(--num)}
+.fld{margin-top:18px}
+.fld label{display:block;font-size:13px;font-weight:600;margin-bottom:8px}
+.fld label small{font-weight:400;color:var(--sub);margin-left:6px}
+.fld input:not([type=time]),.fld textarea{width:100%;background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:13px 14px;font-size:15px;outline:none;transition:border .2s;resize:none}
+.fld input:focus,.fld textarea:focus{border-color:var(--amber)}
+.fld textarea{min-height:80px;line-height:1.6}
+.fld input::placeholder,.fld textarea::placeholder{color:var(--faint)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tags button{padding:6px 11px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--sub)}
+.moods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.moods button{padding:12px 4px;border-radius:14px;border:1px solid var(--line);color:var(--sub);font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:5px;transition:.2s}
+.moods button svg{width:24px;height:24px}
+.moods button.on{border-color:var(--amber);color:var(--ink)}
+.moods button.on svg{color:var(--amber)}
+.gain{display:flex;align-items:center;gap:13px;margin-top:18px;padding:13px 15px;border-radius:14px;background:rgba(230,181,102,.08);border:1px solid rgba(230,181,102,.24);text-align:left}
+.gain svg{width:38px;height:38px;flex:none}
+.gain b{font-size:14px;font-weight:600}
+.gain small{display:block;font-size:12px;color:var(--sub)}
+.pl-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.pl-row span{font-size:13.5px;color:var(--sub)}
+/* ===== 記録 ===== */
+.head{padding-top:26px}
+.head h1{font-size:22px;font-weight:700;margin:0;letter-spacing:.02em}
+.head p{margin:2px 0 0;font-size:12.5px;color:var(--sub)}
+.big2{display:flex;align-items:flex-end;gap:8px;margin-top:20px}
+.big2 b{font-family:var(--num);font-weight:200;font-size:58px;line-height:.95}
+.big2 span{color:var(--sub);font-size:14px;padding-bottom:6px}
+.cmp{font-size:12.5px;color:var(--sub);margin-top:8px}
+.cmp b{color:var(--amber);font-weight:500}
+#weekChart{width:100%;height:auto;margin-top:20px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.kgrid>div{padding:15px 0;border-bottom:1px solid var(--line)}
+.kgrid>div:nth-child(odd){padding-right:14px;border-right:1px solid var(--line)}
+.kgrid>div:nth-child(even){padding-left:18px}
+.kgrid small{display:block;font-size:11.5px;color:var(--sub)}
+.kgrid b{font-family:var(--num);font-weight:300;font-size:26px}
+.kgrid span{font-size:12px;color:var(--sub);margin-left:3px}
+.ins .blk{padding:17px 0;border-bottom:1px solid var(--line)}
+.ins .blk:first-child{padding-top:2px}
+.ins .lbl{font-size:12px;color:var(--sub)}
+.ins .val{font-family:var(--num);font-weight:200;font-size:36px;line-height:1.2;margin-top:2px}
+.ins .note{font-size:12.5px;color:var(--sub);margin-top:3px}
+.ins .note b{color:var(--amber);font-weight:500}
+.ins .txt{font-size:16px;font-weight:600;margin-top:4px}
+.bars{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.bars .r{display:grid;grid-template-columns:112px 1fr 38px;align-items:center;gap:10px;font-size:12.5px}
+.bars .r span:first-child{color:var(--sub)}
+.bars .tr{height:5px;border-radius:5px;background:rgba(236,231,220,.08);overflow:hidden}
+.bars .tr i{display:block;height:100%;border-radius:5px;background:var(--ink)}
+.bars .r.hi .tr i{background:var(--amber)}
+.bars .r b{font-family:var(--num);font-weight:400;text-align:right}
+.lock{font-size:13px;color:var(--sub);line-height:1.9;padding:4px 0}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:10px 4px;text-align:center}
+.cal .w{font-size:10.5px;color:var(--sub)}
+.cal .d{display:flex;flex-direction:column;align-items:center;gap:3px}
+.cal .d svg{width:30px;height:30px}
+.cal .d small{font-size:10px;color:var(--faint);font-family:var(--num)}
+.cal .d.today small{color:var(--amber)}
+.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:18px 6px;text-align:center}
+.badges div{font-size:10.5px;color:var(--faint);line-height:1.4}
+.badges svg{width:42px;height:42px;margin:0 auto 7px}
+.badges .got{color:var(--sub)}
+.badges em{display:block;font-style:normal;font-size:12.5px;font-weight:600;color:var(--faint)}
+.badges .got em{color:var(--ink)}
+.share{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:22px;padding:15px;border-radius:999px;border:1px solid var(--line2);font-size:14px;font-weight:600}
+.share svg{width:17px;height:17px}
+/* ===== 日記 ===== */
+.search{display:flex;align-items:center;gap:10px;margin-top:20px;padding:11px 14px;border-radius:14px;background:var(--surf);border:1px solid var(--line)}
+.search svg{width:17px;height:17px;color:var(--sub);flex:none}
+.search input{flex:1;border:0;background:none;outline:none;font-size:14.5px;min-width:0}
+.search input::placeholder{color:var(--faint)}
+.fys{display:flex;gap:8px;overflow-x:auto;margin-top:22px;scrollbar-width:none}
+.fys::-webkit-scrollbar{display:none}
+.fys button{flex:none;padding:8px 15px;border-radius:999px;border:1px solid var(--line2);font-size:13px;color:var(--sub)}
+.fys button.on{background:var(--ink);color:var(--bg);font-weight:700;border-color:var(--ink)}
+.fysum{margin-top:14px;font-size:12.5px;color:var(--sub)}
+.fysum b{color:var(--ink);font-family:var(--num);font-weight:400;font-size:15px}
+.months{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.months button{padding:12px 4px 10px;border-radius:14px;border:1px solid var(--line);text-align:center;transition:.2s}
+.months button b{display:block;font-size:14px;font-weight:600}
+.months button small{display:block;font-family:var(--num);font-size:11px;color:var(--sub);margin-top:2px}
+.months button .bar{height:3px;border-radius:3px;background:var(--line);margin:8px 8px 0;overflow:hidden}
+.months button .bar i{display:block;height:100%;background:var(--amber)}
+.months button.on{border-color:var(--amber);background:rgba(230,181,102,.07)}
+.months button.none{opacity:.35}
+.msum{margin-top:22px;padding:16px;border-radius:16px;background:var(--surf);border:1px solid var(--line)}
+.msum .t{font-size:12px;color:var(--amber);font-weight:600}
+.msum p{margin:6px 0 0;font-size:13.5px;line-height:1.85}
+.drow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 0;border-bottom:1px solid var(--line)}
+.drow svg{width:30px;height:30px;flex:none}
+.drow .dd{width:46px;flex:none}
+.drow .dd b{display:block;font-family:var(--num);font-weight:400;font-size:20px;line-height:1.1}
+.drow .dd small{font-size:11px;color:var(--sub)}
+.drow .tx{flex:1;min-width:0}
+.drow .tx div{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drow .tx div.none{color:var(--faint);font-weight:400}
+.drow .tx small{display:block;font-size:11.5px;color:var(--sub)}
+.drow .tm{font-family:var(--num);font-size:14px;flex:none}
+.ent{display:block;width:100%;text-align:left;padding:15px 0;border-bottom:1px solid var(--line)}
+.ent .m{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);font-family:var(--num)}
+.ent .m svg{width:15px;height:15px}
+.ent .m .sc{font-family:var(--sans)}
+.ent .m .dur{margin-left:auto;color:var(--ink);font-size:14px}
+.ent .did{font-size:15px;font-weight:600;margin-top:6px;line-height:1.55}
+.ent .did.none{color:var(--faint);font-weight:400;font-size:13.5px}
+.ent .rf{font-size:13.5px;color:var(--sub);margin-top:4px;line-height:1.7;white-space:pre-wrap}
+.ent mark{background:rgba(230,181,102,.25);color:inherit;border-radius:3px}
+.empty{color:var(--sub);text-align:center;padding:36px 0;font-size:13.5px;line-height:1.9}
+.dexp{display:flex;justify-content:flex-end;margin-top:22px}
+.dexp button{font-size:12.5px;color:var(--amber);font-weight:600}
+.dayhead{display:flex;align-items:center;gap:14px;padding-right:40px}
+.dayhead svg{width:56px;height:56px;flex:none}
+.dayhead b{display:block;font-size:19px}
+.dayhead small{font-family:var(--num);color:var(--sub);font-size:13px}
+.sum{margin-top:18px;padding:16px;border-radius:16px;background:rgba(230,181,102,.06);border:1px solid rgba(230,181,102,.22)}
+.sum .t{font-size:12px;color:var(--amber);font-weight:600;display:flex;align-items:center;gap:6px}
+.sum .t svg{width:14px;height:14px}
+.sum p{margin:6px 0 0;font-size:14px;line-height:1.9}
+.nextp{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding:13px 16px;border-radius:14px;border:1px solid var(--line)}
+.nextp small{display:block;font-size:11.5px;color:var(--sub)}
+.nextp b{font-size:14px;font-weight:600}
+.nextp button{font-size:13px;color:var(--amber);font-weight:600;flex:none}
+/* ===== 設定 ===== */
+.stp{display:flex;align-items:center;gap:12px;flex:none}
+.stp button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line2);font-size:16px;color:var(--sub)}
+.stp b{min-width:54px;text-align:center;font-family:var(--num);font-weight:400;font-size:16px}
+.txtbtn{font-size:13px;color:var(--amber);font-weight:600;flex:none}
+.txtbtn.danger{color:var(--warn)}
+.sug{color:var(--amber)!important;cursor:pointer}
+.about{font-size:12.5px;color:var(--sub);line-height:1.95}
+/* ===== タブ ===== */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;padding:0 0 calc(14px + env(safe-area-inset-bottom));pointer-events:none}
+.tabs nav{pointer-events:auto;display:flex;gap:2px;padding:5px;border-radius:999px;background:rgba(26,32,41,.84);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line)}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 17px;border-radius:999px;font-size:10.5px;color:var(--sub);transition:background .25s,color .25s}
+.tabs button svg{width:20px;height:20px}
+.tabs button.on{background:var(--ink);color:var(--bg);font-weight:700}
+/* ===== はじめに ===== */
+.onb{position:fixed;inset:0;z-index:60;background:var(--bg);display:none;flex-direction:column;padding:calc(30px + env(safe-area-inset-top)) 30px calc(28px + env(safe-area-inset-bottom));
+  background-image:radial-gradient(900px 600px at 50% 25%,#1b2332 0%,transparent 60%)}
+.onb.on{display:flex}
+.onb .slides{flex:1;display:flex;align-items:center;justify-content:center;text-align:center}
+.onb .s{display:none;max-width:320px}.onb .s.on{display:block;animation:in .5s}
+.onb .art{width:170px;height:170px;margin:0 auto 28px}
+.onb .art svg{width:100%;height:100%}
+.onb .wm{font-family:var(--latin);font-weight:600;font-size:40px;letter-spacing:.42em;margin:0 -.42em 6px 0}
+.onb .lead{font-size:13px;color:var(--sub);margin-bottom:22px}
+.onb h3{font-size:23px;font-weight:700;margin:0 0 12px;line-height:1.5}
+.onb p{color:var(--sub);margin:0;font-size:14px;line-height:1.9}
+.dots{display:flex;gap:7px;justify-content:center;margin:16px 0 4px}
+.dots i{width:6px;height:6px;border-radius:6px;background:var(--faint);transition:.35s}
+.dots i.on{width:20px;background:var(--amber)}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:10px 17px;border-radius:999px;font-size:13px;opacity:0;transition:.35s;z-index:80;pointer-events:none;max-width:88vw;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<svg class="stars" id="stars" aria-hidden="true"></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="mglow"><stop offset="0" stop-color="#F0E5C6" stop-opacity=".3"/><stop offset=".55" stop-color="#E6B566" stop-opacity=".07"/><stop offset="1" stop-color="#E6B566" stop-opacity="0"/></radialGradient>
+    <radialGradient id="mlit" cx=".4" cy=".35"><stop offset="0" stop-color="#FBF4E2"/><stop offset="1" stop-color="#E5D4AA"/></radialGradient>
+  </defs>
+</svg>
+<div class="app">
+  <div class="top">
+    <div class="logo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#E6B566" stroke-width="1.4"/><path d="M12 3a9 9 0 0 1 0 18a6 9 0 0 0 0-18z" fill="#E6B566"/></svg>FUSE</div>
+    <div class="streak"><b id="streakN">0</b>日連続</div>
+  </div>
+
+  <!-- ============ 集中 ============ -->
+  <section class="view on" id="v-home">
+    <div class="hero">
+      <div class="date" id="hDate"></div>
+      <div class="moonbox" id="hMoon"></div>
+      <div class="total" id="hTotal">0<small>分</small></div>
+      <div class="cap" id="hCap"></div>
+    </div>
+    <div id="hPlan"></div>
+    <div class="row3">
+      <div><b id="hGoal">60</b><small>今日の目標（分）</small></div>
+      <div><b id="hTouch">0</b><small>手に取った回数</small></div>
+      <div><b id="hCount">0</b><small>今日の集中</small></div>
+    </div>
+    <div class="sec"><div class="st">何に集中する？</div><div class="modes" id="modes"></div></div>
+    <div class="sec"><div class="st">タイマー<small id="durNote"></small></div><div class="durs" id="durs"></div>
+      <div class="custom" id="custom">
+        <div class="tgl" id="cmode"><button data-c="min">時間で指定</button><button data-c="clock">終了時刻で指定</button></div>
+        <div class="cr" id="cMin"><span>集中する時間</span><div class="stp"><button data-k="cmin" data-d="-5">−</button><b id="cMinVal">90分</b><button data-k="cmin" data-d="5">＋</button></div></div>
+        <div class="cr" id="cClock"><span>この時刻まで集中する</span><input type="time" id="cTime" value="22:00"></div>
+      </div>
+    </div>
+    <button class="cta" id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M10 18h4"/></svg>集中をはじめる</button>
+    <div class="subacts">
+      <button id="breakBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/></svg>休憩タイマー</button>
+      <button id="planBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 21V4M4 4h12l-2 4 2 4H4"/></svg>明日の目標</button>
+    </div>
+    <button class="link" id="howBtn">使い方</button>
+    <div class="install" id="installCard"><img src="icon-192.png" alt=""><div><b>ホーム画面に追加</b><small>アプリとして全画面で使えます</small></div><button id="installBtn">追加</button></div>
+  </section>
+
+  <!-- ============ 記録 ============ -->
+  <section class="view" id="v-log">
+    <div class="head"><h1>記録</h1><p>直近7日間</p></div>
+    <div class="big2"><b id="wTotal">0</b><span id="wUnit">分 集中</span></div>
+    <div class="cmp" id="wComp"></div>
+    <svg id="weekChart" viewBox="0 0 340 190"></svg>
+    <button class="share" id="shareBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>今週の記録を画像にする</button>
+    <div class="sec"><div class="st">サマリー</div>
+      <div class="kgrid">
+        <div><small>連続日数</small><b id="kStreak">0</b><span>日</span></div>
+        <div><small>累計</small><b id="kTotal">0</b><span id="kTotalU">分</span></div>
+        <div><small>1回あたり手に取った回数</small><b id="kTouch">0</b><span>回</span></div>
+        <div><small>最長の連続集中</small><b id="kBest">0</b><span>分</span></div>
+      </div>
+    </div>
+    <div class="sec"><div class="st">あなたの傾向<small id="insN"></small></div><div class="ins" id="ins"></div></div>
+    <div class="sec"><div class="st">カレンダー<small>月の満ち具合＝その日の達成度</small></div><div class="cal" id="cal"></div></div>
+    <div class="sec"><div class="st">コレクション<small id="badgeN"></small></div><div class="badges" id="badges"></div></div>
+  </section>
+
+  <!-- ============ 日記 ============ -->
+  <section class="view" id="v-diary">
+    <div class="head"><h1>日記</h1><p>年度・月・日ごとに、集中の記録を振り返れます</p></div>
+    <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="キーワードで探す（例：企画書）"></div>
+    <div id="browse">
+      <div class="fys" id="fys"></div>
+      <div class="fysum" id="fysum"></div>
+      <div class="months" id="months"></div>
+      <div id="msum"></div>
+      <div id="days"></div>
+    </div>
+    <div id="results"></div>
+    <div class="dexp"><button id="diaryExport">テキストで書き出す</button></div>
+  </section>
+
+  <!-- ============ 設定 ============ -->
+  <section class="view" id="v-set">
+    <div class="head"><h1>設定</h1></div>
+    <div class="sec"><div class="st">目標</div>
+      <div class="opt"><div><span class="t">1日の目標</span><span class="d">明日の目標を決めていない日はこの時間が基準です</span><span class="d sug" id="goalSug"></span></div><div class="stp"><button data-k="goal" data-d="-5">−</button><b id="goalVal">60分</b><button data-k="goal" data-d="5">＋</button></div></div>
+    </div>
+    <div class="sec"><div class="st">タイマー・アラーム</div>
+      <div class="opt"><div><span class="t">アラーム音</span><span class="d">タイマーが終わったときの音</span></div><div style="display:flex;gap:10px;align-items:center"><select id="alarmSound"><option value="bell">ベル</option><option value="chime">チャイム</option><option value="digital">電子音</option><option value="soft">やわらかい音</option></select><button class="txtbtn" id="alarmTest">試す</button></div></div>
+      <div class="opt"><div><span class="t">鳴らし方</span><span class="d">「止めるまで」は手に取るか停止を押すまで鳴り続けます</span></div><select id="alarmMode"><option value="once">1回だけ</option><option value="repeat">止めるまで</option></select></div>
+      <div class="opt"><div><span class="t">音量</span></div><input type="range" id="alarmVol" min="0.05" max="1" step="0.05"></div>
+      <div class="opt"><div><span class="t">振動で知らせる</span><span class="d">Androidのみ（iPhoneはブラウザの仕様で非対応）</span></div><button class="sw" id="vibSw"></button></div>
+      <div class="opt"><div><span class="t">集中のあと休憩タイマーをすすめる</span><span class="d">保存後に休憩の開始をうながします</span></div><button class="sw" id="brkSw"></button></div>
+    </div>
+    <div class="sec"><div class="st">計測</div>
+      <div class="opt"><div><span class="t">手に取ったと判定するまで</span><span class="d">これより短い揺れは数えません</span></div><div class="stp"><button data-k="grace" data-d="-0.5">−</button><b id="graceVal">1.5秒</b><button data-k="grace" data-d="0.5">＋</button></div></div>
+      <div class="opt"><div><span class="t">環境音</span><span class="d">計測中、小さなノイズで周りの音をやわらげます</span></div><button class="sw" id="soundSw"></button></div>
+      <div class="opt"><div><span class="t">終了後に日記を書く</span><span class="d">保存の画面に「何をしたか」の入力欄を出します</span></div><button class="sw" id="diarySw"></button></div>
+    </div>
+    <div class="sec"><div class="st">データ</div>
+      <div class="opt"><div><span class="t">バックアップを作る</span><span class="d">記録・日記・目標をファイルに保存</span></div><button class="txtbtn" id="exportBtn">保存</button></div>
+      <div class="opt"><div><span class="t">バックアップから戻す</span><span class="d">機種変更のときに</span></div><button class="txtbtn" id="importBtn">読み込む</button><input type="file" id="importFile" accept="application/json,.json" hidden></div>
+      <div class="opt"><div><span class="t">すべてのデータを削除</span><span class="d">元に戻せません</span></div><button class="txtbtn danger" id="resetBtn">削除</button></div>
+    </div>
+    <div class="sec"><div class="st">FUSEについて</div>
+      <p class="about">FUSEは、スマホを伏せている時間だけを計測する集中タイマーです。手に取った回数と理由、何をしたかを記録して、自分の集中の傾向を知ることができます。<br><br>
+      データはこの端末の中にだけ保存され、外部には送信されません。計測中は画面が消えないように設定します。タイマーとアラームは、FUSEを開いている間だけ動作します。画面を消したり、ほかのアプリを開いたりすると計測は止まります。</p>
+    </div>
+  </section>
+</div>
+
+<!-- ============ 計測中 ============ -->
+<div class="session armed" id="session">
+  <div class="guide"><svg viewBox="0 0 60 100" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="52" height="92" rx="12"/><path d="M24 12h12" stroke-linecap="round"/></svg></div>
+  <div class="moonbox" id="sMoon"></div>
+  <div class="time" id="sTime">0:00</div>
+  <div class="msg" id="sMsg"></div>
+  <div class="sub" id="sSub"></div>
+  <div class="why" id="sWhy"></div>
+  <div class="meta"><div><b id="sTouch">0</b>手に取った</div><div><b id="sLeft">30</b><span id="sLeftU">目標まで（分）</span></div></div>
+  <div class="acts"><button class="b-line" id="sEnd">やめる</button><button class="b-fill" id="sManual" style="display:none">伏せたことにする</button><button class="b-fill" id="sStopAlarm" style="display:none">アラームを止める</button></div>
+</div>
+<div class="dim" id="dim"><span>計測中</span><span>伏せたままにしてください</span></div>
+
+<!-- ============ 休憩 ============ -->
+<div class="session brk" id="brk">
+  <div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="none" stroke="rgba(236,231,220,.1)" stroke-width="3"/><circle id="bArc" cx="60" cy="60" r="54" fill="none" stroke="#E6B566" stroke-width="3" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="0"/></svg></div>
+  <div class="time" id="bTime">5:00</div>
+  <div class="msg" id="bMsg">休憩</div>
+  <div class="sub" id="bSub">目を閉じる、水を飲む、体を伸ばす。</div>
+  <div class="opts" id="bOpts"></div>
+  <div class="acts"><button class="b-line" id="bClose">閉じる</button><button class="b-fill" id="bMain">はじめる</button></div>
+</div>
+
+<!-- ============ 結果 ============ -->
+<div class="sheet" id="sheet">
+  <div class="back"></div>
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="res">
+      <div class="moonbox" id="rMoon"></div>
+      <div class="k" id="rMode"></div>
+      <div class="time" id="rTime">0:00</div>
+      <div class="phrase" id="rPhrase"></div>
+      <div class="tl" id="rTl"></div>
+      <div class="row3">
+        <div><b id="rTouch">0</b><small>手に取った回数</small></div>
+        <div><b id="rLong">0</b><small>最長の連続（分）</small></div>
+        <div><b id="rToday">0</b><small>今日の合計（分）</small></div>
+      </div>
+    </div>
+    <div id="rGain"></div>
+    <div id="rDiary">
+      <div class="fld"><label for="rDid">何をした？<small>任意</small></label><input id="rDid" maxlength="80" placeholder="例：企画書の構成を作った"><div class="tags" id="rRecent"></div></div>
+      <div class="fld"><label for="rNote">振り返り<small>任意</small></label><textarea id="rNote" maxlength="400" placeholder="うまくいったこと、次に活かしたいこと"></textarea></div>
+    </div>
+    <div class="fld"><label>集中の手応え</label><div class="moods" id="moods"></div></div>
+    <button class="cta" id="rSave">保存する</button>
+    <button class="link" id="rDiscard">保存しない</button>
+  </div>
+</div>
+
+<!-- ============ 日の詳細 ============ -->
+<div class="sheet full" id="daySheet">
+  <div class="back" id="dayBack"></div>
+  <div class="panel">
+    <div class="grab"></div>
+    <button class="close" id="dayClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="dayhead" id="dHead"></div>
+    <div class="sum"><div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg>この日の要約</div><p id="dSum"></p></div>
+    <div id="dNext"></div>
+    <div id="dList"></div>
+  </div>
+</div>
+
+<!-- ============ 日記の編集 ============ -->
+<div class="sheet" id="edit">
+  <div class="back" id="editBack"></div>
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="st" id="eHead"></div>
+    <div class="fld"><label for="eDid">何をした？</label><input id="eDid" maxlength="80"></div>
+    <div class="fld"><label for="eNote">振り返り</label><textarea id="eNote" maxlength="400"></textarea></div>
+    <div class="fld"><label>集中の手応え</label><div class="moods" id="eMoods"></div></div>
+    <button class="cta" id="eSave">更新する</button>
+    <button class="link" id="eDel" style="color:var(--warn)">この記録を削除</button>
+  </div>
+</div>
+
+<!-- ============ 明日の目標 ============ -->
+<div class="sheet" id="planSheet">
+  <div class="back" id="planBack"></div>
+  <div class="panel">
+    <div class="grab"></div>
+    <div class="st" id="pHead">明日の目標<small id="pDate"></small></div>
+    <div class="fld"><label for="pText">明日やること<small>任意</small></label><input id="pText" maxlength="60" placeholder="例：企画書を最後まで仕上げる"></div>
+    <div class="pl-row"><span>集中する時間の目標</span><div class="stp"><button data-k="pmin" data-d="-15">−</button><b id="pMinVal">60分</b><button data-k="pmin" data-d="15">＋</button></div></div>
+    <button class="cta" id="pSave">決める</button>
+    <button class="link" id="pClear">目標を取り消す</button>
+  </div>
+</div>
+
+<!-- ============ はじめに ============ -->
+<div class="onb" id="onb">
+  <div class="slides">
+    <div class="s on"><div class="art" id="oa0"></div><div class="wm">FUSE</div><div class="lead">伏せるだけの集中タイマー</div><h3>集中したいあなたへ。</h3><p>スマホを伏せている時間だけを計測します。<br>手に取った回数も、何をしたかも記録に残ります。</p></div>
+    <div class="s"><div class="art" id="oa1"></div><h3>伏せると、計測が始まる。</h3><p>画面を下にして机に置くだけ。<br>手に持ったままでは始まりません。</p></div>
+    <div class="s"><div class="art" id="oa2"></div><h3>手に取ると、止まる。</h3><p>手に取った回数と理由を記録します。<br>もう一度伏せれば、続きから再開します。</p></div>
+    <div class="s"><div class="art" id="oa3"></div><h3>集中した時間が、月になる。</h3><p>1日の目標に届くと満月に。<br>何をしたかは日記で振り返れます。</p></div>
+  </div>
+  <div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
+  <button class="cta" id="onbNext">はじめる</button>
+  <button class="link" id="onbSkip">スキップ</button>
+</div>
+
+<div class="tabs"><nav>
+  <button class="on" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17a5 8.5 0 0 0 0-17z" fill="currentColor"/></svg>集中</button>
+  <button data-v="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>記録</button>
+  <button data-v="diary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18M10 8h5M10 12h5"/></svg>日記</button>
+  <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>設定</button>
+</nav></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  アイコン
+// ============================================================
+const IC={
+ work:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
+ study:'<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/>',
+ read:'<path d="M3 5.5c3-1.3 6-1.3 9 .5v13c-3-1.8-6-1.8-9-.5z"/><path d="M21 5.5c-3-1.3-6-1.3-9 .5v13c3-1.8 6-1.8 9-.5z"/>',
+ make:'<path d="M12 3l2.6 5.8L21 9.5l-4.8 4.3L17.5 21 12 17.6 6.5 21l1.3-7.2L3 9.5l6.4-.7z"/>',
+ lang:'<path d="M4 6h9M8.5 4v2c0 4-2 7-5 8.5M6 10c1.5 2.5 3.5 4 6 5"/><path d="M13 20l4-9 4 9M14.3 17h5.4"/>',
+ other:'<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>',
+ good:'<circle cx="12" cy="12" r="9"/><path d="M8 14.5c2 2 6 2 8 0M8.5 10h.01M15.5 10h.01"/>',
+ ok:'<circle cx="12" cy="12" r="9"/><path d="M8.5 15h7M8.5 10h.01M15.5 10h.01"/>',
+ meh:'<circle cx="12" cy="12" r="9"/><path d="M8 15.5c1-1 2-1 3 0s2 1 3 0 2-1 2-1M8.5 10h.01M15.5 10h.01"/>',
+ flag:'<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>'
+};
+const ico=(k,w=1.7)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${IC[k]||IC.other}</svg>`;
+
+// ============================================================
+//  月の満ち欠け
+// ============================================================
+let MID=0;
+function moon(f,opt={}){
+  f=Math.max(0,Math.min(1,f));const id='m'+(MID++);const r=40,c=50;const rx=r*Math.abs(1-2*f),sweep=f>0.5?1:0;
+  const d=f>=0.996?`M${c} ${c-r} A${r} ${r} 0 1 1 ${c-.01} ${c-r}Z`:`M${c} ${c-r} A${r} ${r} 0 0 1 ${c} ${c+r} A${rx} ${r} 0 0 ${sweep} ${c} ${c-r}Z`;
+  const cr=`<g opacity=".13" fill="#8a7a55"><circle cx="38" cy="38" r="7"/><circle cx="60" cy="58" r="9"/><circle cx="57" cy="33" r="4"/><circle cx="40" cy="64" r="5"/><circle cx="68" cy="44" r="3"/></g>`;
+  const lit=f<=0.004?'':`<clipPath id="${id}l"><path d="${d}"/></clipPath><path d="${d}" fill="url(#mlit)"/><g clip-path="url(#${id}l)">${cr}</g>`;
+  return `<svg viewBox="0 0 100 100">${opt.glow!==false?`<circle cx="50" cy="50" r="50" fill="url(#mglow)" opacity="${0.35+0.65*f}"/>`:''}<clipPath id="${id}"><circle cx="${c}" cy="${c}" r="${r}"/></clipPath><circle cx="${c}" cy="${c}" r="${r}" fill="#1E2532"/><circle cx="${c}" cy="${c}" r="${r-.5}" fill="none" stroke="rgba(240,229,198,.14)"/><g clip-path="url(#${id})">${lit}</g></svg>`;
+}
+function smallMoon(f,locked){const i=MID++;return `<svg viewBox="0 0 100 100"><clipPath id="sm${i}"><circle cx="50" cy="50" r="44"/></clipPath><circle cx="50" cy="50" r="44" fill="${locked?'none':'#1E2532'}" stroke="${locked?'rgba(236,231,220,.18)':'rgba(240,229,198,.2)'}" stroke-width="2" ${locked?'stroke-dasharray="4 5"':''}/>${locked?'':`<g clip-path="url(#sm${i})">${f>=0.99?'<circle cx="50" cy="50" r="44" fill="#EADCB6"/>':f<=0.01?'':`<path d="M50 6 A44 44 0 0 1 50 94 A${44*Math.abs(1-2*Math.min(1,f))} 44 0 0 ${f>0.5?1:0} 50 6Z" fill="#EADCB6"/>`}</g>`}</svg>`}
+
+// ============================================================
+//  データ
+// ============================================================
+const MODES=[{id:'work',n:'仕事'},{id:'study',n:'勉強'},{id:'read',n:'読書'},{id:'make',n:'制作'},{id:'lang',n:'語学'},{id:'other',n:'その他'}];
+const modeOf=id=>MODES.find(x=>x.id===id)||MODES[5];
+const DURS=[15,25,45,60,'c',0];
+const MOODS=[{id:'good',n:'集中できた'},{id:'ok',n:'ふつう'},{id:'meh',n:'散漫だった'}];
+const moodN=id=>(MOODS.find(m=>m.id===id)||{}).n;
+const WHY=[{id:'notice',n:'通知'},{id:'clock',n:'時間の確認'},{id:'sns',n:'SNS'},{id:'reply',n:'連絡・調べもの'},{id:'nan',n:'なんとなく'}];
+const whyN=id=>(WHY.find(w=>w.id===id)||{}).n;
+const BADGES=[
+ {id:'first',f:.03,n:'新月',d:'最初の集中を記録',ok:s=>s.length>=1},
+ {id:'zero',f:.16,n:'三日月',d:'25分以上、一度も手に取らない',ok:s=>s.some(x=>x.dur>=1500&&x.touches===0)},
+ {id:'goal',f:.5,n:'上弦',d:'1日の目標を達成',ok:s=>[...new Set(s.map(x=>dayKey(x.start)))].some(k=>s.filter(x=>dayKey(x.start)===k).reduce((a,x)=>a+x.dur,0)>=goalFor(k)*60)},
+ {id:'hour',f:.75,n:'十三夜',d:'1回で60分集中',ok:s=>s.some(x=>x.dur>=3600)},
+ {id:'s3',f:.9,n:'小望月',d:'3日連続',ok:()=>streak()>=3},
+ {id:'s7',f:1,n:'満月',d:'7日連続',ok:()=>streak()>=7},
+ {id:'diary',f:.62,n:'十日夜',d:'日記を10件書く',ok:s=>s.filter(x=>x.did||x.note).length>=10},
+ {id:'plan',f:.35,n:'有明',d:'明日の目標を達成',ok:()=>Object.entries(st.plans||{}).some(([k,p])=>p.min&&daySec(k)>=p.min*60)}
+];
+const LS='fuse.v1';
+let st=Object.assign({sessions:[],plans:{},goal:60,grace:1.5,sound:false,vib:true,diary:true,brk:true,mode:'work',dur:25,cmode:'min',cmin:90,ctime:'22:00',aSound:'bell',aMode:'repeat',aVol:.6,brkMin:5,onb:false,badges:[]},JSON.parse(localStorage.getItem(LS)||'{}'));
+if(!st.plans)st.plans={};
+const save=()=>localStorage.setItem(LS,JSON.stringify(st));
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const fmt=sec=>{sec=Math.max(0,Math.floor(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return h?`${h}:${pad(m)}:${pad(s)}`:`${m}:${pad(s)}`};
+const mins=sec=>Math.floor(sec/60);
+const hm=sec=>{const m=mins(sec);return m>=60?`${Math.floor(m/60)}時間${m%60?m%60+'分':''}`:`${m}分`};
+const esc=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dayKey=t=>{const d=new Date(t);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const keyDate=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+const tomorrowKey=()=>{const d=new Date();d.setDate(d.getDate()+1);return dayKey(d)};
+const sessionsOn=k=>st.sessions.filter(s=>dayKey(s.start)===k);
+const daySec=k=>sessionsOn(k).reduce((a,s)=>a+s.dur,0);
+const goalFor=k=>(st.plans[k]&&st.plans[k].min)||st.goal;
+function streak(){let n=0;const d=new Date();if(!sessionsOn(dayKey(d)).length)d.setDate(d.getDate()-1);while(sessionsOn(dayKey(d)).length){n++;d.setDate(d.getDate()-1)}return n}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2600)}
+const WD=['日','月','火','水','木','金','土'];
+const md=t=>{const d=new Date(t);return `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）`};
+const hhmm=t=>{const d=new Date(t);return `${d.getHours()}:${pad(d.getMinutes())}`};
+const fyOf=t=>{const d=new Date(t);return d.getMonth()>=3?d.getFullYear():d.getFullYear()-1};
+
+// ============================================================
+//  集中
+// ============================================================
+function renderHome(){
+  const now=Date.now(),k=dayKey(now),ss=sessionsOn(k),sec=daySec(k),tc=ss.reduce((a,s)=>a+s.touches,0),g=goalFor(k),f=sec/(g*60);
+  $('hDate').textContent=md(now);$('hMoon').innerHTML=moon(f);$('hTotal').innerHTML=`${mins(sec)}<small>分</small>`;
+  $('hCap').innerHTML=sec===0?'スマホを伏せている時間だけを計測します':f>=1?'<b>今日の目標を達成しました</b>':`今日の目標まで あと<b>${Math.ceil((g*60-sec)/60)}分</b>`;
+  const p=st.plans[k];$('hPlan').innerHTML=p&&p.text?`<div class="plan">${ico('flag',2)}<div><small>昨日決めた今日の目標</small><b>${esc(p.text)}</b></div></div>`:'';
+  $('hGoal').textContent=g;$('hTouch').textContent=tc;$('hCount').textContent=ss.length+'回';$('streakN').textContent=streak();
+  $('modes').innerHTML=MODES.map(m=>`<button class="mode ${st.mode===m.id?'on':''}" data-m="${m.id}">${ico(m.id)}${m.n}</button>`).join('');
+  $('durs').innerHTML=DURS.map(d=>`<button class="${String(st.dur)===String(d)?'on':''} ${d==='c'||d===0?'txt':''}" data-d="${d}">${d==='c'?'指定':d?d+'<small>分</small>':'なし'}</button>`).join('');
+  $('custom').classList.toggle('on',st.dur==='c');
+  [...$('cmode').children].forEach(b=>b.classList.toggle('on',b.dataset.c===st.cmode));
+  $('cMin').style.display=st.cmode==='min'?'flex':'none';$('cClock').style.display=st.cmode==='clock'?'flex':'none';
+  $('cMinVal').textContent=st.cmin+'分';$('cTime').value=st.ctime;
+  const t=targetSec();$('durNote').textContent=st.dur===0?'時間を決めずに集中':st.dur==='c'&&st.cmode==='clock'?`${st.ctime}まで（${Math.ceil(t/60)}分）`:t?`終了予定 ${hhmm(Date.now()+t*1000)}`:'';
+}
+function targetSec(){
+  if(st.dur==='c'){if(st.cmode==='min')return st.cmin*60;const [h,m]=st.ctime.split(':').map(Number);const e=new Date();e.setHours(h,m,0,0);if(e<=new Date())e.setDate(e.getDate()+1);return Math.round((e-new Date())/1000)}
+  return (+st.dur||0)*60;
+}
+$('modes').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;st.mode=b.dataset.m;save();renderHome()};
+$('durs').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;st.dur=b.dataset.d==='c'?'c':+b.dataset.d;save();renderHome()};
+$('cmode').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;st.cmode=b.dataset.c;save();renderHome()};
+$('cTime').onchange=()=>{st.ctime=$('cTime').value||'22:00';save();renderHome()};
+setInterval(()=>{if($('v-home').classList.contains('on')&&!S)renderHome()},30000);
+
+// ============================================================
+//  センサー
+// ============================================================
+let faceDown=false,sensorOK=false,manual=false,shake=0,lastStill=0,motionOK=false,listening=false;
+function onOrient(e){if(e.beta==null)return;sensorOK=true;faceDown=Math.abs(e.beta)>140&&Math.abs(e.gamma||0)<40}
+function onMotion(e){const a=e.acceleration;if(!a||a.x==null)return;motionOK=true;shake=shake*.85+Math.hypot(a.x,a.y,a.z)*.15;if(shake<.6)lastStill=performance.now()}
+const still=()=>!motionOK||performance.now()-lastStill<700;
+async function askSensor(){
+  let ok=true;
+  try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){if(await DeviceOrientationEvent.requestPermission()!=='granted')ok=false}}catch(e){ok=false}
+  try{if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function')await DeviceMotionEvent.requestPermission()}catch(e){}
+  if(!listening){listening=true;addEventListener('deviceorientation',onOrient);addEventListener('devicemotion',onMotion)}return ok;
+}
+
+// ============================================================
+//  アラーム音
+// ============================================================
+let AC=null,amb=null,alarmTimer=null;
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC}
+function tone(f,t,dur,type,vol,attack=.01){const a=ac(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+attack);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+.05)}
+function playAlarm(){try{const a=ac(),t=a.currentTime,v=st.aVol*.3;
+  if(st.aSound==='bell')[659.25,987.77,1318.5].forEach((f,i)=>tone(f,t+i*.22,2.4,'sine',v));
+  if(st.aSound==='chime')[[783.99,0],[659.25,.35],[523.25,.7],[392,1.05]].forEach(([f,d])=>tone(f,t+d,1.4,'triangle',v));
+  if(st.aSound==='digital')for(let i=0;i<4;i++){tone(1760,t+i*.25,.12,'square',v*.5);}
+  if(st.aSound==='soft')[[440,0],[554.37,.5],[659.25,1]].forEach(([f,d])=>tone(f,t+d,2.2,'sine',v*.8,.25));
+}catch(e){}}
+function startAlarm(){stopAlarm();playAlarm();if(st.vib&&navigator.vibrate)navigator.vibrate([300,150,300]);if(st.aMode==='repeat')alarmTimer=setInterval(()=>{playAlarm();if(st.vib&&navigator.vibrate)navigator.vibrate([300,150,300])},2600)}
+function stopAlarm(){clearInterval(alarmTimer);alarmTimer=null;if(navigator.vibrate)navigator.vibrate(0)}
+function ambient(on){if(!st.sound)return;try{const a=ac();
+  if(!amb){const len=a.sampleRate*4,buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);let l=0;for(let i=0;i<len;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.5}
+    const src=a.createBufferSource();src.buffer=buf;src.loop=true;const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=650;const g=a.createGain();g.gain.value=0;src.connect(lp).connect(g).connect(a.destination);src.start();amb={g}}
+  amb.g.gain.cancelScheduledValues(a.currentTime);amb.g.gain.linearRampToValueAtTime(on?.12:0,a.currentTime+(on?2:.5))}catch(e){}}
+
+// ============================================================
+//  計測
+// ============================================================
+let S=null,timer=null,wakeLock=null;
+async function keepAwake(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}
+function releaseAwake(){try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
+async function startSession(){
+  const ok=await askSensor();const k=dayKey(Date.now());
+  S={start:Date.now(),mode:st.mode,target:targetSec(),acc:0,runSince:null,touches:0,touchLog:[],longest:0,upSince:null,state:'armed',goalHit:false,started:false,curStart:0,base:daySec(k),goal:goalFor(k),waitStill:false};
+  manual=false;faceDown=false;
+  $('session').className='session on armed';$('sManual').style.display='none';$('sStopAlarm').style.display='none';$('sManual').textContent='伏せたことにする';$('sSub').dataset.nosensor='';
+  setTimeout(()=>{if(S&&!sensorOK&&!manual){$('sManual').style.display='block';$('sSub').dataset.nosensor='1'}},1800);
+  keepAwake();clearInterval(timer);timer=setInterval(loop,100);loop();
+  if(!ok&&typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function')toast('「動作と方向」へのアクセスを許可すると、伏せたことを自動で判定できます');
+}
+const elapsed=()=>S.acc+(S.runSince?(performance.now()-S.runSince)/1000:0);
+function stopRun(at){S.acc+=(at-S.runSince)/1000;S.longest=Math.max(S.longest,(at-S.curStart)/1000);S.runSince=null;$('dim').classList.remove('on');ambient(false)}
+function addTouch(){S.touches++;S.touchLog.push({at:Math.round(S.acc),why:null});S.state='paused';
+  $('sWhy').innerHTML='<div class="q">手に取った理由（任意）</div>'+WHY.map(w=>`<button data-w="${w.id}">${w.n}</button>`).join('')}
+$('sWhy').onclick=e=>{const b=e.target.closest('[data-w]');if(!b||!S||!S.touchLog.length)return;S.touchLog[S.touchLog.length-1].why=b.dataset.w;[...$('sWhy').querySelectorAll('button')].forEach(x=>x.classList.toggle('on',x===b))};
+function loop(){
+  if(!S)return;const now=performance.now(),down=manual||faceDown;
+  if(S.state!=='running'){
+    if(down&&(manual||still())){S.state='running';S.runSince=now;S.curStart=now;S.upSince=null;S.started=true;S.waitStill=false;$('dim').classList.add('on');ambient(true)}
+    else S.waitStill=down;
+  }else{
+    if(!down){if(S.upSince==null)S.upSince=now;
+      if((now-S.upSince)/1000>=st.grace){stopRun(S.upSince);if(S.goalHit||(S.target===0&&S.acc>=60)){finish();return}addTouch();st.vib&&navigator.vibrate&&navigator.vibrate(25)}}
+    else S.upSince=null;
+    if(S.target&&!S.goalHit&&elapsed()>=S.target){S.goalHit=true;startAlarm();$('dim').classList.remove('on');$('sStopAlarm').style.display=st.aMode==='repeat'?'block':'none'}
+  }
+  drawSession();
+}
+function drawSession(){
+  const e=elapsed();$('session').className='session on '+S.state;
+  $('sTime').textContent=fmt(e);$('sTime').classList.toggle('ring-alarm',!!alarmTimer);$('sTouch').textContent=S.touches;
+  $('sMoon').innerHTML=moon(S.target?e/S.target:(S.base+e)/(S.goal*60));
+  if(S.target){$('sLeft').textContent=S.goalHit?'達成':Math.ceil(Math.max(0,S.target-e)/60);$('sLeftU').textContent=S.goalHit?'タイマー':'残り（分）'}else{$('sLeft').textContent=mins(S.base+e);$('sLeftU').textContent='今日の合計（分）'}
+  let m,s;
+  if(S.state==='armed'){if(S.waitStill){m='そのまま置いてください';s='手に持ったままでは計測が始まりません'}else{m='スマホを伏せてください';s=$('sSub').dataset.nosensor?'このブラウザでは傾きを検知できません。「伏せたことにする」で手動計測できます':'画面を下にして置くと、計測が始まります'}$('sEnd').textContent='やめる'}
+  else if(S.state==='paused'){m=S.waitStill?'そのまま置いてください':`手に取りました（${S.touches}回目）`;s='伏せると、続きから再開します';$('sEnd').textContent='ここで終了'}
+  else{m=S.goalHit?'時間です':'集中しています';s=S.goalHit?'手に取ると、記録して終了します':'伏せたままにしてください';$('sEnd').textContent='終了'}
+  $('sMsg').textContent=m;$('sSub').textContent=s;
+}
+$('sEnd').onclick=()=>{if(!S)return;stopAlarm();if(!S.started){cancelSession();return}if(S.runSince)stopRun(performance.now());finish()};
+$('sStopAlarm').onclick=()=>{stopAlarm();$('sStopAlarm').style.display='none'};
+$('sManual').onclick=()=>{manual=true;$('sManual').style.display='none'};
+$('dim').addEventListener('pointerdown',()=>{if(!(manual&&S&&S.state==='running'))return;manual=false;stopRun(performance.now());if(S.goalHit){finish();return}addTouch();$('sManual').style.display='block';$('sManual').textContent='再開する';drawSession()});
+document.addEventListener('visibilitychange',()=>{if(!S)return;if(document.hidden&&S.state==='running'){stopRun(performance.now());addTouch();manual=false;if(!sensorOK){$('sManual').style.display='block';$('sManual').textContent='再開する'}}if(!document.hidden)keepAwake()});
+function cancelSession(){clearInterval(timer);stopAlarm();S=null;ambient(false);releaseAwake();$('session').className='session';$('dim').classList.remove('on')}
+let pending=null;
+function finish(){
+  clearInterval(timer);stopAlarm();ambient(false);releaseAwake();$('dim').classList.remove('on');$('session').className='session';
+  const dur=Math.round(S.acc);if(dur<10){toast('10秒未満のため記録しませんでした');S=null;return}
+  pending={id:Date.now(),start:S.start,end:Date.now(),dur,touches:S.touches,mode:S.mode,target:S.target,goalHit:S.goalHit,longest:Math.min(dur,Math.round(S.longest))||dur,touchLog:S.touchLog,first:S.touchLog.length?S.touchLog[0].at:dur,mood:null,did:'',note:''};
+  S=null;openResult();
+}
+
+// ============================================================
+//  結果
+// ============================================================
+function phrase(p,tf){
+  if(tf>=1&&p.touches===0)return '一度も手に取らず、今日の目標を達成しました';
+  if(tf>=1)return '今日の目標を達成しました';
+  if(p.touches===0)return '一度も手に取らずに集中できました';
+  if(p.goalHit)return 'タイマーの時間まで集中できました';
+  return `手に取った回数は${p.touches}回でした`;
+}
+function timeline(p){
+  const W=300,y=20;let g=`<svg viewBox="0 0 ${W} 40" preserveAspectRatio="none"><line x1="2" x2="${W-2}" y1="${y}" y2="${y}" stroke="rgba(236,231,220,.16)" stroke-width="2" stroke-linecap="round"/>`;let prev=0;
+  (p.touchLog||[]).concat([{at:p.dur,end:1}]).forEach(t=>{const x0=2+prev/p.dur*(W-4),x1=2+t.at/p.dur*(W-4);g+=`<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="#E6B566" stroke-width="4" stroke-linecap="round" opacity=".85"/>`;if(!t.end)g+=`<line x1="${x1}" x2="${x1}" y1="${y-9}" y2="${y+9}" stroke="#E28B70" stroke-width="2"/>`;prev=t.at});
+  return g+`</svg><div class="lg"><span>0:00</span><span>${p.touches?'赤い線＝手に取ったところ':'手に取らずに集中'}</span><span>${fmt(p.dur)}</span></div>`;
+}
+const moodBtns=sel=>MOODS.map(x=>`<button data-mo="${x.id}" class="${sel===x.id?'on':''}">${ico(x.id,1.5)}${x.n}</button>`).join('');
+function openResult(){
+  const p=pending,k=dayKey(p.start),today=daySec(k)+p.dur,tf=today/(goalFor(k)*60);
+  $('rMoon').innerHTML=moon(tf);$('rMode').textContent=`${modeOf(p.mode).n}・${hhmm(p.start)}〜${hhmm(p.end)}`;$('rTime').textContent=fmt(p.dur);$('rPhrase').textContent=phrase(p,tf);
+  $('rTl').innerHTML=timeline(p);$('rTouch').textContent=p.touches;$('rLong').textContent=mins(p.longest);$('rToday').textContent=mins(today);
+  const got=BADGES.filter(b=>!st.badges.includes(b.id)&&b.ok(st.sessions.concat([p])));
+  $('rGain').innerHTML=got.map(b=>`<div class="gain">${smallMoon(b.f)}<div><b>コレクション「${b.n}」</b><small>${b.d}</small></div></div>`).join('');
+  $('rDiary').style.display=st.diary?'block':'none';$('rDid').value='';$('rNote').value='';
+  const recent=[...new Set(st.sessions.slice().reverse().filter(s=>s.did).map(s=>s.did))].slice(0,4);
+  $('rRecent').innerHTML=recent.map(t=>`<button data-t="${esc(t)}">${esc(t)}</button>`).join('');
+  $('moods').innerHTML=moodBtns(null);$('sheet').classList.add('on');
+}
+$('rRecent').onclick=e=>{const b=e.target.closest('[data-t]');if(b)$('rDid').value=b.dataset.t};
+$('moods').onclick=e=>{const b=e.target.closest('[data-mo]');if(!b)return;pending.mood=b.dataset.mo;$('moods').innerHTML=moodBtns(pending.mood)};
+const checkBadges=()=>st.badges.push(...BADGES.filter(b=>!st.badges.includes(b.id)&&b.ok(st.sessions)).map(b=>b.id));
+$('rSave').onclick=()=>{pending.did=$('rDid').value.trim();pending.note=$('rNote').value.trim();st.sessions.push(pending);checkBadges();save();pending=null;$('sheet').classList.remove('on');renderAll();toast('保存しました');if(st.brk)setTimeout(()=>openBreak(),500)};
+$('rDiscard').onclick=()=>{pending=null;$('sheet').classList.remove('on');toast('今回は保存しませんでした')};
+
+// ============================================================
+//  休憩タイマー
+// ============================================================
+let B=null;
+function openBreak(){B={min:st.brkMin,left:st.brkMin*60,end:null,t:null,done:false};drawBreak();$('brk').classList.add('on')}
+function drawBreak(){
+  $('bOpts').innerHTML=[3,5,10,15].map(m=>`<button class="${B.min===m?'on':''}" data-b="${m}">${m}分</button>`).join('');$('bOpts').style.display=B.end||B.done?'none':'flex';
+  const left=B.end?Math.max(0,(B.end-Date.now())/1000):B.left;$('bTime').textContent=fmt(Math.ceil(left));$('bArc').style.strokeDashoffset=339.3*(1-left/(B.min*60));
+  $('bMsg').textContent=B.done?'休憩おわり':B.end?'休憩中':'休憩';$('bSub').textContent=B.done?'次の集中をはじめましょう':'目を閉じる、水を飲む、体を伸ばす。';
+  $('bMain').textContent=B.done?'集中をはじめる':B.end?'終了する':'はじめる';$('bTime').classList.toggle('ring-alarm',!!alarmTimer);
+}
+$('bOpts').onclick=e=>{const b=e.target.closest('[data-b]');if(!b)return;B.min=+b.dataset.b;B.left=B.min*60;st.brkMin=B.min;save();drawBreak()};
+$('bMain').onclick=()=>{ac();if(B.done){stopAlarm();closeBreak();startSession();return}
+  if(B.end){clearInterval(B.t);B.end=null;B.done=true;stopAlarm();drawBreak();return}
+  B.end=Date.now()+B.left*1000;keepAwake();B.t=setInterval(()=>{if(Date.now()>=B.end&&!B.done){clearInterval(B.t);B.done=true;B.end=null;B.left=0;startAlarm()}drawBreak()},250)};
+function closeBreak(){if(B)clearInterval(B.t);stopAlarm();releaseAwake();B=null;$('brk').classList.remove('on')}
+$('bClose').onclick=closeBreak;
+$('breakBtn').onclick=()=>{ac();openBreak()};
+
+// ============================================================
+//  明日の目標
+// ============================================================
+let planKey=null,planMin=60;
+function openPlan(k){planKey=k||tomorrowKey();const p=st.plans[planKey]||{};planMin=p.min||st.goal;$('pText').value=p.text||'';$('pMinVal').textContent=planMin+'分';
+  $('pHead').firstChild.textContent=planKey===tomorrowKey()?'明日の目標':'目標';$('pDate').textContent=md(keyDate(planKey));$('pClear').style.display=st.plans[planKey]?'block':'none';$('planSheet').classList.add('on')}
+$('planBtn').onclick=()=>openPlan();
+$('pSave').onclick=()=>{st.plans[planKey]={text:$('pText').value.trim(),min:planMin};save();$('planSheet').classList.remove('on');renderAll();if(openDayKey)openDay(openDayKey);toast(`${md(keyDate(planKey))}の目標を決めました`)};
+$('pClear').onclick=()=>{delete st.plans[planKey];save();$('planSheet').classList.remove('on');renderAll();if(openDayKey)openDay(openDayKey);toast('目標を取り消しました')};
+$('planBack').onclick=()=>$('planSheet').classList.remove('on');
+
+// ============================================================
+//  記録
+// ============================================================
+function weekData(off=0){const out=[];const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-6-off*7);for(let i=0;i<7;i++){const k=dayKey(d),ss=sessionsOn(k);out.push({k,d:new Date(d),sec:ss.reduce((a,s)=>a+s.dur,0),t:ss.reduce((a,s)=>a+s.touches,0)});d.setDate(d.getDate()+1)}return out}
+function median(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);return b[Math.floor(b.length/2)]}
+function renderInsights(){
+  const ss=st.sessions,el=$('ins');$('insN').textContent=ss.length>=3?`${ss.length}回の記録から`:'';
+  if(ss.length<3){el.innerHTML=`<div class="lock">3回記録すると、集中の傾向が表示されます（現在 ${ss.length}回）</div>`;return}
+  const now=Date.now(),wk=7*864e5,thisW=ss.filter(s=>now-s.start<wk),lastW=ss.filter(s=>now-s.start>=wk&&now-s.start<2*wk);
+  const fo=s=>s.first!=null?s.first:s.dur,avg=a=>a.length?a.reduce((x,s)=>x+fo(s),0)/a.length:0,fN=avg(thisW.length?thisW:ss),fP=avg(lastW);
+  let h=`<div class="blk"><div class="lbl">伏せてから手に取るまでの平均</div><div class="val">${fmt(fN)}</div><div class="note">${lastW.length?`先週 ${fmt(fP)}　<b>${fN>=fP?'＋'+fmt(fN-fP):'−'+fmt(fP-fN)}</b>`:'記録が増えると、先週との比較が表示されます'}</div></div>`;
+  const all=ss.flatMap(s=>s.touchLog||[]).filter(t=>t.why);
+  if(all.length>=3){const c={};all.forEach(t=>c[t.why]=(c[t.why]||0)+1);const rows=WHY.map(w=>({w,n:c[w.id]||0})).filter(x=>x.n).sort((a,b)=>b.n-a.n);
+    h+=`<div class="blk"><div class="lbl">手に取る理由</div><div class="txt">最も多いのは「${rows[0].w.n}」</div><div class="bars">${rows.map((x,i)=>`<div class="r ${i?'':'hi'}"><span>${x.w.n}</span><div class="tr"><i style="width:${x.n/rows[0].n*100}%"></i></div><b>${Math.round(x.n/all.length*100)}%</b></div>`).join('')}</div></div>`}
+  else h+=`<div class="blk"><div class="lbl">手に取る理由</div><div class="note">手に取ったときに理由を選ぶと集計されます（あと${3-all.length}回）</div></div>`;
+  const sc={};ss.forEach(s=>{const o=sc[s.mode]=sc[s.mode]||{n:0,sec:0,t:0};o.n++;o.sec+=s.dur;o.t+=s.touches});
+  const cd=Object.entries(sc).filter(([k,v])=>v.n>=2&&v.sec>=300).map(([k,v])=>({k,r:v.t/(v.sec/600)})).sort((a,b)=>a.r-b.r);
+  if(cd.length){const w=cd[cd.length-1];h+=`<div class="blk"><div class="lbl">集中しやすいシーン</div><div class="txt">${modeOf(cd[0].k).n}</div><div class="note">10分あたり手に取った回数 <b>${cd[0].r.toFixed(1)}回</b>${cd.length>1?`　最も多いのは${modeOf(w.k).n}（${w.r.toFixed(1)}回）`:''}</div></div>`}
+  const slots=[{n:'朝 5–11時',f:h=>h>=5&&h<11},{n:'昼 11–17時',f:h=>h>=11&&h<17},{n:'夕方 17–21時',f:h=>h>=17&&h<21},{n:'夜 21–5時',f:h=>h>=21||h<5}];
+  const sl=slots.map(x=>({n:x.n,sec:ss.filter(s=>x.f(new Date(s.start).getHours())).reduce((a,s)=>a+s.dur,0)})),mx=Math.max(...sl.map(x=>x.sec)),tot=sl.reduce((a,x)=>a+x.sec,0);
+  h+=`<div class="blk"><div class="lbl">集中している時間帯</div><div class="bars">${sl.map(x=>`<div class="r ${x.sec===mx&&mx?'hi':''}"><span>${x.n}</span><div class="tr"><i style="width:${mx?x.sec/mx*100:0}%"></i></div><b>${tot?Math.round(x.sec/tot*100):0}%</b></div>`).join('')}</div></div>`;
+  const mm=ss.filter(s=>s.mood);if(mm.length>=4){const z=mm.filter(s=>s.touches===0),t=mm.filter(s=>s.touches>0),r=a=>Math.round(a.filter(s=>s.mood==='good').length/a.length*100);
+    if(z.length&&t.length)h+=`<div class="blk"><div class="lbl">手に取らなかった回の手応え</div><div class="txt">${r(z)}%が「集中できた」</div><div class="note">手に取った回では ${r(t)}%</div></div>`}
+  el.innerHTML=h;
+}
+function renderLog(){
+  const w=weekData(),pw=weekData(1),tot=w.reduce((a,x)=>a+x.sec,0),ptot=pw.reduce((a,x)=>a+x.sec,0),ss=st.sessions;
+  $('wTotal').textContent=tot>=3600?(tot/3600).toFixed(1):mins(tot);$('wUnit').textContent=(tot>=3600?'時間':'分')+' 集中';
+  $('wComp').innerHTML=ptot?`前の7日間より <b>${tot>=ptot?'＋':'−'}${hm(Math.abs(tot-ptot))}</b>`:'前の7日間の記録はまだありません';
+  const W=340,H=190,base=140,max=Math.max(st.goal*60,...w.map(x=>Math.max(x.sec,goalFor(x.k)*60)))*1.1,step=W/7,gy=base-(st.goal*60/max)*110;
+  let g=`<line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="rgba(236,231,220,.12)"/><line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="rgba(230,181,102,.45)" stroke-dasharray="2 5"/><text x="${W}" y="${gy-6}" text-anchor="end" font-size="10" fill="#B98C46">目標 ${st.goal}分</text>`;
+  w.forEach((x,i)=>{const cx=step*i+step/2,h=x.sec?Math.max(3,x.sec/max*110):0,today=i===6,gl=goalFor(x.k)*60;
+    g+=`<rect x="${cx-3}" y="${base-h}" width="6" height="${h}" rx="3" fill="${x.sec>=gl?'#E6B566':'#ECE7DC'}" opacity="${x.sec?(today?1:.75):0}"/>`;
+    if(x.sec)g+=`<text x="${cx}" y="${base-h-8}" text-anchor="middle" font-size="10" fill="#8D929B">${mins(x.sec)}</text>`;
+    g+=`<g transform="translate(${cx-9},${base+10})">${smallMoon(x.sec/gl,!x.sec).replace('<svg ','<svg width="18" height="18" ')}</g>`;
+    g+=`<text x="${cx}" y="${H-4}" text-anchor="middle" font-size="10.5" fill="${today?'#E6B566':'#8D929B'}">${today?'今日':WD[x.d.getDay()]}</text>`});
+  $('weekChart').innerHTML=g;
+  const total=ss.reduce((a,s)=>a+s.dur,0);
+  $('kStreak').textContent=streak();$('kTotal').textContent=total>=3600?(total/3600).toFixed(1):mins(total);$('kTotalU').textContent=total>=3600?'時間':'分';
+  $('kTouch').textContent=ss.length?(ss.reduce((a,s)=>a+s.touches,0)/ss.length).toFixed(1):'0';$('kBest').textContent=ss.length?mins(Math.max(...ss.map(s=>s.longest||s.dur))):0;
+  renderInsights();
+  const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7-21);const tk=dayKey(Date.now());
+  let c=['月','火','水','木','金','土','日'].map(x=>`<div class="w">${x}</div>`).join('');
+  for(let i=0;i<28;i++){const k=dayKey(d),fut=d>new Date(),sec=daySec(k);c+=`<div class="d ${k===tk?'today':''}">${fut?'<svg viewBox="0 0 100 100"></svg>':smallMoon(sec/(goalFor(k)*60),!sec)}<small>${d.getDate()}</small></div>`;d.setDate(d.getDate()+1)}
+  $('cal').innerHTML=c;
+  $('badgeN').textContent=`${st.badges.length} / ${BADGES.length}`;
+  $('badges').innerHTML=BADGES.map(b=>{const got=st.badges.includes(b.id);return `<div class="${got?'got':''}">${smallMoon(b.f,!got)}<em>${b.n}</em>${b.d}</div>`}).join('');
+}
+
+// ============================================================
+//  要約（記録から文章をつくる）
+// ============================================================
+function topOf(arr){const c={};arr.forEach(x=>{if(x)c[x]=(c[x]||0)+1});return Object.entries(c).sort((a,b)=>b[1]-a[1])}
+function summarize(ss,kind,k){
+  if(!ss.length)return 'この日の記録はありません。';
+  const tot=ss.reduce((a,s)=>a+s.dur,0),tc=ss.reduce((a,s)=>a+s.touches,0);const out=[];
+  if(kind==='day'){
+    out.push(`合計${hm(tot)}、${ss.length}回集中しました。`);
+    const lg=ss.reduce((a,s)=>s.dur>a.dur?s:a);if(ss.length>1)out.push(`最も長かったのは${hhmm(lg.start)}からの${modeOf(lg.mode).n}で、${hm(lg.dur)}です。`);
+    const p=st.plans[k];if(p&&p.min)out.push(tot>=p.min*60?`前日に決めた目標（${p.min}分${p.text?`・${p.text}`:''}）を達成しています。`:`前日に決めた目標（${p.min}分${p.text?`・${p.text}`:''}）まで、あと${hm(p.min*60-tot)}でした。`);
+  }else{
+    const days=[...new Set(ss.map(s=>dayKey(s.start)))],best=days.map(x=>({x,s:daySec(x)})).sort((a,b)=>b.s-a.s)[0],ach=days.filter(x=>daySec(x)>=goalFor(x)*60).length;
+    out.push(`合計${hm(tot)}。集中した日は${days.length}日で、そのうち${ach}日は目標を達成しました。`);
+    out.push(`最も集中したのは${md(keyDate(best.x))}の${hm(best.s)}です。`);
+    const mt=topOf(ss.map(s=>modeOf(s.mode).n));if(mt.length)out.push(`いちばん多いシーンは「${mt[0][0]}」でした。`);
+  }
+  const did=[...new Set(ss.map(s=>s.did).filter(Boolean))];if(did.length)out.push(`取り組んだこと：${did.slice(0,kind==='day'?5:6).join('、')}${did.length>(kind==='day'?5:6)?' ほか':''}。`);
+  if(tc===0)out.push('一度もスマホを手に取りませんでした。');
+  else{const w=topOf(ss.flatMap(s=>(s.touchLog||[]).map(t=>whyN(t.why))));out.push(`スマホを手に取ったのは${tc}回${w.length?`で、理由は「${w[0][0]}」が最多`:''}でした。`)}
+  const mo=topOf(ss.map(s=>moodN(s.mood)));if(mo.length)out.push(`手応えは「${mo[0][0]}」が${mo[0][1]}回。`);
+  return out.join('');
+}
+
+// ============================================================
+//  日記：年度 → 月 → 日
+// ============================================================
+let selFY=fyOf(Date.now()),selM=new Date().getMonth()+1,openDayKey=null;
+const fyMonths=[4,5,6,7,8,9,10,11,12,1,2,3];
+const ymOf=(fy,m)=>m>=4?[fy,m]:[fy+1,m];
+function sessionsInMonth(fy,m){const [y,mm]=ymOf(fy,m);return st.sessions.filter(s=>{const d=new Date(s.start);return d.getFullYear()===y&&d.getMonth()+1===mm})}
+function renderDiary(){
+  const q=$('q').value.trim();$('browse').style.display=q?'none':'block';$('results').style.display=q?'block':'none';
+  if(q){renderSearch(q);return}
+  const fys=[...new Set(st.sessions.map(s=>fyOf(s.start)).concat([fyOf(Date.now())]))].sort((a,b)=>b-a);
+  if(!fys.includes(selFY))selFY=fys[0];
+  $('fys').innerHTML=fys.map(y=>`<button class="${y===selFY?'on':''}" data-fy="${y}">${y}年度</button>`).join('');
+  const fySess=st.sessions.filter(s=>fyOf(s.start)===selFY),fyTot=fySess.reduce((a,s)=>a+s.dur,0);
+  $('fysum').innerHTML=`${selFY}年4月〜${selFY+1}年3月　合計 <b>${hm(fyTot)}</b>・${new Set(fySess.map(s=>dayKey(s.start))).size}日`;
+  const mt=fyMonths.map(m=>({m,s:sessionsInMonth(selFY,m)})),mmax=Math.max(1,...mt.map(x=>x.s.reduce((a,s)=>a+s.dur,0)));
+  $('months').innerHTML=mt.map(({m,s})=>{const t=s.reduce((a,x)=>a+x.dur,0);return `<button class="${m===selM?'on':''} ${s.length?'':'none'}" data-m="${m}"><b>${m}月</b><small>${t?hm(t):'—'}</small><div class="bar"><i style="width:${t/mmax*100}%"></i></div></button>`}).join('');
+  const ms=sessionsInMonth(selFY,selM),[y,mm]=ymOf(selFY,selM);
+  $('msum').innerHTML=ms.length?`<div class="msum"><div class="t">${y}年${mm}月の要約</div><p>${esc(summarize(ms,'month'))}</p></div>`:'';
+  if(!ms.length){$('days').innerHTML=`<div class="empty">${y}年${mm}月の記録はありません。</div>`;return}
+  const days=[...new Set(ms.map(s=>dayKey(s.start)))].sort().reverse();
+  $('days').innerHTML=`<div class="sec" style="margin-top:22px"><div class="st">${mm}月の日記<small>${days.length}日</small></div>${days.map(k=>{const ss=sessionsOn(k),sec=daySec(k),d=keyDate(k),dids=ss.map(s=>s.did).filter(Boolean);
+    return `<button class="drow" data-day="${k}">${smallMoon(sec/(goalFor(k)*60))}<div class="dd"><b>${d.getDate()}</b><small>${WD[d.getDay()]}曜</small></div><div class="tx"><div class="${dids.length?'':'none'}">${dids.length?esc(dids.join('、')):'内容は未記入'}</div><small>${ss.length}回・手に取った ${ss.reduce((a,s)=>a+s.touches,0)}回</small></div><div class="tm">${hm(sec)}</div></button>`}).join('')}</div>`;
+}
+$('fys').onclick=e=>{const b=e.target.closest('[data-fy]');if(!b)return;selFY=+b.dataset.fy;const ms=fyMonths.filter(m=>sessionsInMonth(selFY,m).length);selM=ms.length?ms[ms.length-1]:4;renderDiary()};
+$('months').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;selM=+b.dataset.m;renderDiary()};
+$('days').onclick=e=>{const b=e.target.closest('[data-day]');if(b)openDay(b.dataset.day)};
+function entryHTML(s,hl=t=>esc(t)){return `<button class="ent" data-id="${s.id}"><div class="m">${ico(s.mode)}<span class="sc">${modeOf(s.mode).n}</span><span>${hhmm(s.start)}–${hhmm(s.end)}</span><span>手に取った ${s.touches}</span><span class="dur">${fmt(s.dur)}</span></div>
+  <div class="did ${s.did?'':'none'}">${s.did?hl(s.did):'何をしたかを書く'}</div>${s.note?`<div class="rf">${hl(s.note)}</div>`:''}</button>`}
+function renderSearch(q){
+  const r=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),hl=t=>esc(t).replace(r,m=>`<mark>${m}</mark>`);
+  const list=st.sessions.slice().reverse().filter(s=>[s.did,s.note,modeOf(s.mode).n].join(' ').toLowerCase().includes(q.toLowerCase()));
+  $('results').innerHTML=list.length?`<div class="sec" style="margin-top:22px"><div class="st">検索結果<small>${list.length}件</small></div>${list.map(s=>`<div style="font-size:11.5px;color:var(--sub);margin-top:12px">${md(s.start)}</div>${entryHTML(s,hl)}`).join('')}</div>`:'<div class="empty">見つかりませんでした</div>';
+}
+$('q').oninput=renderDiary;
+function openDay(k){
+  openDayKey=k;const ss=sessionsOn(k).sort((a,b)=>a.start-b.start),sec=daySec(k);
+  $('dHead').innerHTML=`${moon(sec/(goalFor(k)*60))}<div><b>${md(keyDate(k))}</b><small>${hm(sec)}・目標 ${goalFor(k)}分</small></div>`;
+  $('dSum').textContent=summarize(ss,'day',k);
+  const nk=(()=>{const d=keyDate(k);d.setDate(d.getDate()+1);return dayKey(d)})(),np=st.plans[nk],canPlan=keyDate(nk)>=new Date(new Date().setHours(0,0,0,0));
+  $('dNext').innerHTML=np?`<div class="nextp"><div><small>翌日（${md(keyDate(nk))}）の目標</small><b>${esc(np.text||'')}${np.text?'・':''}${np.min}分</b></div>${canPlan?`<button data-plan="${nk}">変更</button>`:''}</div>`:canPlan?`<div class="nextp"><div><small>翌日の目標</small><b style="color:var(--sub);font-weight:400">まだ決めていません</b></div><button data-plan="${nk}">決める</button></div>`:'';
+  $('dList').innerHTML=`<div class="sec" style="margin-top:22px"><div class="st">この日の集中<small>${ss.length}回</small></div>${ss.map(s=>entryHTML(s)).join('')}</div>`;
+  $('daySheet').classList.add('on');
+}
+$('dNext').onclick=e=>{const b=e.target.closest('[data-plan]');if(b)openPlan(b.dataset.plan)};
+const closeDay=()=>{openDayKey=null;$('daySheet').classList.remove('on')};
+$('dayClose').onclick=closeDay;$('dayBack').onclick=closeDay;
+let editing=null;
+function openEdit(id){editing=st.sessions.find(s=>String(s.id)===id);if(!editing)return;
+  $('eHead').innerHTML=`${md(editing.start)} ${hhmm(editing.start)}<small>${modeOf(editing.mode).n}・${fmt(editing.dur)}</small>`;$('eDid').value=editing.did||'';$('eNote').value=editing.note||'';$('eMoods').innerHTML=moodBtns(editing.mood);$('edit').classList.add('on')}
+$('dList').onclick=e=>{const b=e.target.closest('[data-id]');if(b)openEdit(b.dataset.id)};
+$('results').onclick=e=>{const b=e.target.closest('[data-id]');if(b)openEdit(b.dataset.id)};
+$('eMoods').onclick=e=>{const b=e.target.closest('[data-mo]');if(!b)return;editing.mood=b.dataset.mo;$('eMoods').innerHTML=moodBtns(editing.mood)};
+$('eSave').onclick=()=>{editing.did=$('eDid').value.trim();editing.note=$('eNote').value.trim();checkBadges();save();$('edit').classList.remove('on');renderAll();if(openDayKey)openDay(openDayKey);toast('更新しました')};
+$('eDel').onclick=()=>{if(!confirm('この記録を削除します。元に戻せません。'))return;st.sessions=st.sessions.filter(s=>s!==editing);save();$('edit').classList.remove('on');renderAll();if(openDayKey){sessionsOn(openDayKey).length?openDay(openDayKey):closeDay()}toast('削除しました')};
+$('editBack').onclick=()=>$('edit').classList.remove('on');
+$('diaryExport').onclick=()=>{const g={};st.sessions.forEach(s=>{(g[dayKey(s.start)]=g[dayKey(s.start)]||[]).push(s)});
+  const txt=Object.entries(g).map(([k,ss])=>`■ ${md(keyDate(k))}　合計 ${hm(daySec(k))}\n要約：${summarize(ss,'day',k)}\n`+ss.map(s=>`・${hhmm(s.start)}–${hhmm(s.end)}　${modeOf(s.mode).n}　${fmt(s.dur)}（手に取った ${s.touches}回）${s.did?`\n　何をした：${s.did}`:''}${s.note?`\n　振り返り：${s.note.replace(/\n/g,' ')}`:''}`).join('\n')).join('\n\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download='FUSE_日記.txt';a.click()};
+
+// ============================================================
+//  シェア画像
+// ============================================================
+$('shareBtn').onclick=async()=>{
+  const w=weekData(),tot=w.reduce((a,x)=>a+x.sec,0),touches=w.reduce((a,x)=>a+x.t,0);
+  const c=document.createElement('canvas');c.width=1080;c.height=1350;const x=c.getContext('2d');
+  const bg=x.createRadialGradient(540,360,40,540,500,1100);bg.addColorStop(0,'#1d2534');bg.addColorStop(1,'#0B0E13');x.fillStyle=bg;x.fillRect(0,0,1080,1350);
+  for(let i=0;i<90;i++){x.fillStyle=`rgba(236,231,220,${Math.random()*.45+.1})`;x.beginPath();x.arc(Math.random()*1080,Math.random()*720,Math.random()*1.5+.4,0,7);x.fill()}
+  const gl=x.createRadialGradient(540,350,120,540,350,420);gl.addColorStop(0,'rgba(240,229,198,.2)');gl.addColorStop(1,'rgba(230,181,102,0)');x.fillStyle=gl;x.fillRect(0,0,1080,800);
+  const img=new Image();const svg=moon(Math.min(1,tot/(st.goal*60*7)),{glow:false}).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" width="520" height="520" ').replace(/url\(#mlit\)/g,'#EEE1BF');
+  await new Promise(r=>{img.onload=r;img.onerror=r;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)});x.drawImage(img,280,90,520,520);
+  const JP='"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif',NUM='-apple-system,"Helvetica Neue","Segoe UI",sans-serif',LAT='"Avenir Next","Futura","Century Gothic","Helvetica Neue",sans-serif';
+  x.textAlign='center';x.fillStyle='#8D929B';x.font=`500 34px ${JP}`;x.fillText('今週の集中時間',540,700);
+  x.fillStyle='#ECE7DC';x.font=`200 168px ${NUM}`;const big=tot>=3600?(tot/3600).toFixed(1):String(mins(tot));const bw=x.measureText(big).width;x.fillText(big,520,880);
+  x.font=`500 44px ${JP}`;x.textAlign='left';x.fillText(tot>=3600?'時間':'分',520+bw/2+12,880);x.textAlign='center';
+  x.strokeStyle='rgba(236,231,220,.14)';x.beginPath();x.moveTo(200,960);x.lineTo(880,960);x.stroke();
+  x.fillStyle='#8D929B';x.font=`500 28px ${JP}`;x.fillText('手に取った回数',360,1030);x.fillText('連続',720,1030);
+  x.fillStyle='#ECE7DC';x.font=`300 62px ${NUM}`;x.fillText(touches+'回',360,1112);x.fillText(streak()+'日',720,1112);
+  x.fillStyle='#E6B566';x.font=`600 38px ${LAT}`;if('letterSpacing' in x)x.letterSpacing='14px';x.fillText('FUSE',548,1240);if('letterSpacing' in x)x.letterSpacing='0px';
+  x.fillStyle='#5A606B';x.font=`400 24px ${JP}`;x.fillText('伏せるだけの集中タイマー',540,1290);
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));const file=new File([blob],'FUSE_week.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]})}catch(e){}}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='FUSE_week.png';a.click();toast('画像を保存しました')}
+};
+
+// ============================================================
+//  設定
+// ============================================================
+function renderSet(){
+  $('goalVal').textContent=st.goal+'分';$('graceVal').textContent=st.grace.toFixed(1)+'秒';
+  $('vibSw').classList.toggle('on',st.vib);$('soundSw').classList.toggle('on',st.sound);$('diarySw').classList.toggle('on',st.diary);$('brkSw').classList.toggle('on',st.brk);
+  $('alarmSound').value=st.aSound;$('alarmMode').value=st.aMode;$('alarmVol').value=st.aVol;
+  const days=[...new Set(st.sessions.map(s=>dayKey(s.start)))].slice(-14).map(k=>daySec(k)/60);
+  if(days.length>=3){const sug=Math.max(15,Math.round(median(days)*1.2/5)*5);$('goalSug').textContent=sug!==st.goal?`最近の記録からのおすすめ：${sug}分（タップで変更）`:'';$('goalSug').onclick=()=>{if(sug!==st.goal){st.goal=sug;save();renderAll();toast(`目標を${sug}分に変更しました`)}}}else $('goalSug').textContent='';
+}
+document.querySelectorAll('.stp button').forEach(b=>b.onclick=()=>{const k=b.dataset.k,d=+b.dataset.d;
+  if(k==='goal')st.goal=Math.min(300,Math.max(10,st.goal+d));if(k==='grace')st.grace=Math.min(4,Math.max(.5,st.grace+d));if(k==='cmin')st.cmin=Math.min(240,Math.max(5,st.cmin+d));
+  if(k==='pmin'){planMin=Math.min(480,Math.max(15,planMin+d));$('pMinVal').textContent=planMin+'分';return}save();renderAll()});
+$('vibSw').onclick=()=>{st.vib=!st.vib;save();renderSet()};$('soundSw').onclick=()=>{st.sound=!st.sound;save();renderSet()};$('diarySw').onclick=()=>{st.diary=!st.diary;save();renderSet()};$('brkSw').onclick=()=>{st.brk=!st.brk;save();renderSet()};
+$('alarmSound').onchange=()=>{st.aSound=$('alarmSound').value;save();playAlarm()};$('alarmMode').onchange=()=>{st.aMode=$('alarmMode').value;save()};$('alarmVol').oninput=()=>{st.aVol=+$('alarmVol').value;save()};
+$('alarmTest').onclick=()=>playAlarm();
+$('exportBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(st)],{type:'application/json'}));a.download=`FUSE_backup_${dayKey(Date.now())}.json`;a.click()};
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.sessions))throw 0;const ids=new Set(st.sessions.map(s=>s.id));const add=d.sessions.filter(s=>!ids.has(s.id));
+  st.sessions=st.sessions.concat(add).sort((a,b)=>a.start-b.start);st.plans=Object.assign({},d.plans||{},st.plans);st.badges=[...new Set(st.badges.concat(d.badges||[]))];save();renderAll();toast(`${add.length}件の記録を読み込みました`)}catch(err){toast('読み込めませんでした。バックアップのファイルを選んでください')}e.target.value=''};
+$('resetBtn').onclick=()=>{if(confirm('すべての記録・日記・目標を削除します。元に戻せません。')){st.sessions=[];st.plans={};st.badges=[];save();renderAll();toast('削除しました')}};
+
+// ============================================================
+//  タブ・はじめに・インストール
+// ============================================================
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+b.dataset.v));scrollTo(0,0);renderAll()});
+$('startBtn').onclick=()=>{ac();startSession()};
+$('oa0').innerHTML=moon(.55);$('oa1').innerHTML=moon(.1);$('oa2').innerHTML=moon(.35);$('oa3').innerHTML=moon(1);
+let onbI=0;const NS=4;
+function onbShow(i){onbI=i;document.querySelectorAll('.onb .s').forEach((s,j)=>s.classList.toggle('on',j===i));document.querySelectorAll('.dots i').forEach((s,j)=>s.classList.toggle('on',j===i));$('onbNext').textContent=i===0?'はじめる':i===NS-1?'使ってみる':'次へ'}
+const closeOnb=()=>{$('onb').classList.remove('on');st.onb=true;save()};
+$('onbNext').onclick=()=>{onbI<NS-1?onbShow(onbI+1):closeOnb()};$('onbSkip').onclick=closeOnb;
+$('howBtn').onclick=()=>{onbShow(1);$('onb').classList.add('on')};
+if(!st.onb)$('onb').classList.add('on');
+let dp=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('installCard').classList.add('on')});
+if(!(matchMedia('(display-mode: standalone)').matches||navigator.standalone)&&/iPhone|iPad|iPod/.test(navigator.userAgent))$('installCard').classList.add('on');
+$('installBtn').onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;$('installCard').classList.remove('on')}else toast('Safariの共有ボタンから「ホーム画面に追加」を選んでください')};
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+(function(){let s='',sd=7;const r=()=>(sd=(sd*9301+49297)%233280)/233280;for(let i=0;i<70;i++)s+=`<circle cx="${r()*100}%" cy="${r()*60}%" r="${r()*1.1+.3}" fill="#ECE7DC" opacity="${r()*.5+.15}"/>`;$('stars').innerHTML=s})();
+function renderAll(){renderHome();renderLog();renderDiary();renderSet()}
+renderAll();
+</script>
+</body>
+</html>
