@@ -517,7 +517,7 @@ input[type=range]{width:120px;accent-color:var(--amber)}
     <div class="s"><div class="art" id="oa3"></div><h3>集中した時間が、月になる。</h3><p>1日の目標に届くと満月に。<br>何をしたかは日記で振り返れます。</p></div>
   </div>
   <div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
-  <button class="cta" id="onbNext">はじめる</button>
+  <button class="cta" id="onbNext">次へ</button>
   <button class="link" id="onbSkip">スキップ</button>
 </div>
 
@@ -670,7 +670,7 @@ let S=null,timer=null,wakeLock=null;
 async function keepAwake(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}
 function releaseAwake(){try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
 async function startSession(){
-  const ok=await askSensor();const k=dayKey(Date.now());
+  const ok=sensorOK?true:await askSensor();const k=dayKey(Date.now());
   S={start:Date.now(),mode:st.mode,target:targetSec(),acc:0,runSince:null,touches:0,touchLog:[],longest:0,upSince:null,state:'armed',goalHit:false,started:false,curStart:0,base:daySec(k),goal:goalFor(k),waitStill:false};
   manual=false;faceDown=false;
   $('session').className='session on armed';$('sManual').style.display='none';$('sStopAlarm').style.display='none';$('sManual').textContent='伏せたことにする';$('sSub').dataset.nosensor='';
@@ -971,11 +971,12 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.que
 $('startBtn').onclick=()=>{ac();startSession()};
 $('oa0').innerHTML=moon(.55);$('oa1').innerHTML=moon(.1);$('oa2').innerHTML=moon(.35);$('oa3').innerHTML=moon(1);
 let onbI=0;const NS=4;
-function onbShow(i){onbI=i;document.querySelectorAll('.onb .s').forEach((s,j)=>s.classList.toggle('on',j===i));document.querySelectorAll('.dots i').forEach((s,j)=>s.classList.toggle('on',j===i));$('onbNext').textContent=i===0?'はじめる':i===NS-1?'使ってみる':'次へ'}
-const closeOnb=()=>{$('onb').classList.remove('on');st.onb=true;save()};
-$('onbNext').onclick=()=>{onbI<NS-1?onbShow(onbI+1):closeOnb()};$('onbSkip').onclick=closeOnb;
+function onbShow(i){onbI=i;document.querySelectorAll('.onb .s').forEach((s,j)=>s.classList.toggle('on',j===i));document.querySelectorAll('.dots i').forEach((s,j)=>s.classList.toggle('on',j===i));$('onbNext').textContent=i===NS-1?(st.onbDone?'閉じる':'センサーを許可して始める'):'次へ'}
+const closeOnb=()=>{$('onb').classList.remove('on');st.onb=true;st.onbDone=true;save()};
+$('onbNext').onclick=()=>{if(onbI<NS-1){onbShow(onbI+1);return}if(st.onbDone){closeOnb();return}askSensor().finally(closeOnb)};$('onbSkip').onclick=closeOnb;
 $('howBtn').onclick=()=>{onbShow(1);$('onb').classList.add('on')};
-if(!st.onb)$('onb').classList.add('on');
+if(!st.onb){$('onb').classList.add('on');st.onb=true;save()}
+addEventListener('deviceorientation',onOrient);addEventListener('devicemotion',onMotion);listening=true;
 let dp=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('installCard').classList.add('on')});
 if(!(matchMedia('(display-mode: standalone)').matches||navigator.standalone)&&/iPhone|iPad|iPod/.test(navigator.userAgent))$('installCard').classList.add('on');
 $('installBtn').onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;$('installCard').classList.remove('on')}else toast('Safariの共有ボタンから「ホーム画面に追加」を選んでください')};
